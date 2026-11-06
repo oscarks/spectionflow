@@ -18,7 +18,7 @@ Other targets:
 |---|---|
 | `./install.sh --user` | `~/.claude/skills` (all your projects) |
 | `./install.sh --dir some/dir` | any folder your agent reads skills from |
-| `./install.sh --only "proposal review"` | only the listed skills |
+| `./install.sh --only "proposal ai-spec implement review"` | only the listed skills (keep `ai-spec` with `implement` and `review`) |
 
 The installer never overwrites: an existing skill folder is skipped. Remove it first to reinstall.
 
@@ -37,20 +37,23 @@ Pick a small feature. The names below are examples.
 ```
 
 The agent explores your code, asks about anything ambiguous and writes
-`docs/features/Notification_Retry/Proposal_Notification_Retry.md`, including a phased
-**Implementation Plan**. Read it. Edit it. **Approve it** (set `Status: Approved`) — this is the
-main human checkpoint.
+`docs/features/Notification_Retry/Proposal_Notification_Retry.md`: the problem, business rules,
+acceptance criteria and a phase roadmap (the **Implementation Plan**). Read it. Edit it. **Approve it**
+(set `Status: Approved`) — this is the main human checkpoint.
 
 ```text
+/ai-spec Notification_Retry phase 1
 /implement Notification_Retry phase 1
 /review Notification_Retry phase 1
 ```
 
-`/implement` codes phase 1 and runs your build, lint and tests. `/review` checks it against the
-proposal and writes `Review_Phase_1_Notification_Retry.md` with a verdict. If the verdict is
+`/ai-spec` explores your code and writes `AI-SPEC_Notification_Retry_Phase_1.md`: the executable spec of
+that phase (files, data model, rules, tests, traceability). Read it and approve it. `/implement` codes
+phase 1 from the AI-SPEC and runs your build, lint and tests. `/review` checks it against the
+AI-SPEC and the proposal and writes `Review_Phase_1_Notification_Retry.md` with a verdict. If the verdict is
 `CHANGES REQUIRED`, fix the findings (ask the agent to, or run `/implement` again) and re-review.
 
-Repeat for each phase, then close with:
+Repeat `/ai-spec`, `/implement` and `/review` for each phase, then close with:
 
 ```text
 /review Notification_Retry final
@@ -62,8 +65,8 @@ Repeat for each phase, then close with:
 /pipeline Notification_Retry all
 ```
 
-The pipeline drives proposal → implement → review for each phase, loops on fixes (bounded),
-verifies all acceptance criteria and does the final review. It stops at the human checkpoints.
+The pipeline drives proposal, then ai-spec → implement → review for each phase, loops on fixes (bounded),
+verifies all acceptance criteria and does the final review. It stops at the human checkpoints (the Proposal; and the AI-SPEC in a `phase N` run).
 Resume an interrupted run with `/pipeline Notification_Retry resume`.
 
 ## 5. Starting from an idea instead of a feature
@@ -75,7 +78,7 @@ Resume an interrupted run with `/pipeline Notification_Retry resume`.
 /inception finalize
 ```
 
-This produces `docs/inception/` and a seed proposal per Milestone 1 feature. Expand a seed with `/proposal`.
+This produces `docs/inception/` and a seed proposal per Milestone 1 feature. Expand a seed with `/proposal`, then continue with `/ai-spec` per phase.
 Drop briefs, interview notes or an old spec into `docs/inception/sources/` before you start — the skill reads them.
 
 ## 6. When you are unsure *what* to build
@@ -91,7 +94,7 @@ exists; `/proposal` records the current state of the code it touches (with real 
 ## Tips
 
 - One feature = one folder in `docs/features/`. Name it `PascalCase_With_Underscores`.
-- Keep phases small enough to implement and review in one sitting.
+- Keep phases small enough to specify, implement and review in one sitting.
 - Commit the `docs/features/<Feature>/` folder with the code: the documents are the audit trail.
 - The agent writes in your documentation language; headings stay in English.
 - Never paste secrets into proposals or sources; the skills cite where a secret lives, not its value.

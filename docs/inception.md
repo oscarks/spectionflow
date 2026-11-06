@@ -69,7 +69,7 @@ An item is **ready** (Definition of Ready) when:
 
 Anti-patterns: a huge unrefined backlog, vague stories, missing criteria, epics reaching development, hidden dependencies, refining only at planning time.
 
-In Spectionflow, **`/proposal` is where a feature is refined to ready**: its business rules, acceptance criteria and phased plan are the Definition of Ready, checked by its own quality checklist. Inception only has to get you to a bounded Milestone 1.
+In Spectionflow, **`/proposal` is where a feature is refined to ready**: its business rules, acceptance criteria and phase roadmap are the Definition of Ready, checked by its own quality checklist; each phase is then detailed just in time by `/ai-spec`. Inception only has to get you to a bounded Milestone 1.
 
 ## The `/inception` skill
 
