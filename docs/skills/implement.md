@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Implements **one phase** of the Implementation Plan in `docs/features/<Feature>/Proposal_<Feature>.md`, with its tests. The Proposal is the only spec.
+Implements **one phase** from its AI-SPEC, `docs/features/<Feature>/AI-SPEC_<Feature>_Phase_<N>.md`, with its tests. The AI-SPEC is the executable spec; the Proposal is the what/why behind it.
 
 ## When to use / not use
 
-Use it when a Proposal exists and you have approved it, or when a review returned `CHANGES REQUIRED` and the findings must be fixed.
+Use it when the phase has an AI-SPEC (see [`/ai-spec`](ai-spec.md)), or when a review returned `CHANGES REQUIRED` and the findings must be fixed.
 
-Do not use it to change the Proposal's content, to implement several phases at once, or to start on an unresolved open question that blocks the phase.
+Do not use it when the AI-SPEC is missing (the skill stops and tells you to run `/ai-spec <Feature> phase N`), to change the Proposal's or the AI-SPEC's content, to implement several phases at once, or to start on an unresolved open question that blocks the phase.
 
 ## Invocation and arguments
 
@@ -16,7 +16,7 @@ Do not use it to change the Proposal's content, to implement several phases at o
 /implement <Feature> [phase N]
 ```
 
-Without a phase, the skill implements the first phase not yet implemented (and asks if unclear).
+Without a phase, the skill implements the first phase whose AI-SPEC is not yet `Implemented` (and asks if unclear).
 
 ```
 /implement Notification_Retry
@@ -27,7 +27,8 @@ Fix pass: point it at the review file so it fixes exactly the listed findings, f
 
 ## Inputs read
 
-- The Proposal in full: the phase's goal, deliverables, files/areas, tests, acceptance criteria (`CA-F<N>-NN`), business rules (`RN-NN`), validation commands and the constraining decisions (`D-NN`).
+- The AI-SPEC of the phase in full: Scope (in/out), Solution (files, contracts, rules, execution order), Tests (`T-F<N>-NN`), Acceptance Criteria (`CA-F<N>-NN`), Traceability and validation commands.
+- The Proposal: the business rules (`RN-NN`) and decisions (`D-NN`) that constrain the phase.
 - README, `CLAUDE.md` / `AGENTS.md`, manifests and layout: the stack, build/lint/format/test commands, naming and layering conventions.
 - At least one similar existing module in each area it touches, to copy the real patterns.
 - A design-system or style guide document, if the project has one, before writing interface code.
@@ -36,14 +37,14 @@ Fix pass: point it at the review file so it fixes exactly the listed findings, f
 ## Outputs written
 
 - Code and tests for the phase, in the project's layout.
-- Exactly one edit to the Proposal: its `Status` line becomes `In Progress` when phase 1 starts. Nothing else in the Proposal may be changed; if the plan is wrong, the skill tells you.
+- Two Status-line edits, and nothing else in either document: the Proposal's `Status` becomes `In Progress` when phase 1 starts, and the AI-SPEC's `Status` becomes `Implemented` when the phase is complete. If the Proposal or the AI-SPEC is wrong or incomplete, the skill tells you instead of editing it.
 - No tracking file. Deferred items are listed in the final message.
 
 ## What the skill does, step by step
 
-**Step 0 - Preparation.** Read the Proposal; check prerequisites (an unresolved earlier phase or open question means STOP and tell you); learn the project; study existing code; set Status to `In Progress`; plan small tasks.
+**Step 0 - Preparation.** Read the AI-SPEC, then the Proposal; check prerequisites (an unresolved earlier phase or open question means STOP and tell you); learn the project; study existing code; set the Proposal's Status to `In Progress` (phase 1 only); plan small tasks following the AI-SPEC's Solution order.
 
-**Step 1 - Execution order** (strict; each step must build and pass its checks before the next; layers the project does not have are skipped):
+**Step 1 - Execution order** (follows the AI-SPEC's Solution order; where it is silent, this order, strict; each step must build and pass its checks before the next; layers the project does not have are skipped):
 
 1. **Data**: schema, models, migrations, seeds. Never drop data or columns without explicit confirmation; renames are add, migrate, drop. Seeds are idempotent.
 2. **Contracts**: request/response types, validation schemas. Never expose secrets or hashes.
@@ -59,7 +60,7 @@ Fix pass: point it at the review file so it fixes exactly the listed findings, f
 
 ## Rules and guardrails
 
-- **Scope control**: only what the Proposal's plan describes for this phase. No future-phase work, no extra features, no refactoring of surrounding code. Ambiguity means ask you first.
+- **Scope control**: only what the AI-SPEC's In-scope list describes for this phase. No future-phase work, no extra features, no refactoring of surrounding code. Ambiguity means ask you first.
 - Check whether a file or module exists before creating it.
 - Do not touch files the project asks agents to ignore.
 - **Undoing a temporary edit** (an experiment or mutation test): restore from a backup copy and compare checksums. Never use `git checkout --`, `git restore`, `git stash`, `git reset --hard` or `git clean`: the working tree may hold uncommitted work.
@@ -72,13 +73,14 @@ Fix pass: point it at the review file so it fixes exactly the listed findings, f
 
 - It stops and asks on a blocked prerequisite, an unresolved open question or an ambiguity.
 - Destructive data operations need explicit confirmation.
-- Your approval of the Proposal precedes it; your decision after the final message (review next) follows it.
+- Your approval of the Proposal and review of the AI-SPEC precede it; your decision after the final message (review next) follows it.
 
 ## Common mistakes
 
-- Starting before the Proposal is approved.
+- Starting before the AI-SPEC exists and you have reviewed it.
 - "Helpful" extras: next-phase work, refactors, drive-by fixes.
-- Editing the Proposal's plan or criteria because they seem wrong (tell the user instead).
+- Editing the Proposal or the AI-SPEC because they seem wrong (tell the user instead). The only allowed edits are the Status lines.
+- Skipping `/ai-spec`: without it there is nothing to implement from.
 - Repo-wide formatting.
 - A guard with no test that would fail without it.
 - Declaring the phase done without running the existing suite.
@@ -92,12 +94,12 @@ Fix pass: point it at the review file so it fixes exactly the listed findings, f
 Final message excerpt:
 
 ```markdown
-Phase 1 implemented: retry scheduling.
+Phase 1 implemented from AI-SPEC_Notification_Retry_Phase_1.md: retry scheduling.
 
 Deliverables
 - Migration `migrations/0042_add_attempts.sql` (attempts, next_attempt_at)
 - `src/jobs/retry.ts` (new), `src/delivery/sender.ts` (enqueue on failure)
-- Tests: `src/jobs/retry.test.ts` (RN-01)
+- Tests: `src/jobs/retry.test.ts` (T-F1-01, T-F1-02: RN-01)
 
 Acceptance criteria: CA-F1-01 met (test `retry reschedules on 503`).
 
@@ -108,6 +110,8 @@ Commands
 
 Guards: the "only retry 5xx/network errors" check in retry.ts:27 was inverted;
 `does not retry 400` failed; file restored, checksum matches.
+
+AI-SPEC Status set to Implemented.
 
 Deferred / out of scope
 - Backoff schedule (phase 2).

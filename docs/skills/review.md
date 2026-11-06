@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Reviews an implemented phase (or the whole feature) against its Proposal: business rules, acceptance criteria, code quality, tests, static analysis and build. It writes a review document with evidence-backed findings and a verdict.
+Reviews an implemented phase (or the whole feature) against its AI-SPEC (the executable spec of the phase) and its Proposal (the what/why): spec compliance, business rules, acceptance criteria, code quality, tests, static analysis and build. A `final` review checks the whole feature against the Proposal and every phase's AI-SPEC. It writes a review document with evidence-backed findings and a verdict.
 
 ## When to use / not use
 
@@ -25,7 +25,7 @@ With no phase, the skill infers the latest implemented phase from the diff and t
 
 ## Inputs read
 
-- The Proposal in full, including the phase's plan.
+- The Proposal in full (rules, criteria, decisions, principles, open questions, the phase roadmap) and the AI-SPEC of the phase in full (Scope, Solution, Tests, Acceptance Criteria, Traceability, validation commands). For `final`, every phase's AI-SPEC. If the Proposal is missing, or the AI-SPEC of a reviewed phase is missing, the skill stops and tells you (for the latter, to run `/ai-spec <Feature> phase N`).
 - Earlier `Review_Phase_*_<Feature>.md` files of the same feature (so it does not contradict or re-report settled points).
 - README, `CLAUDE.md` / `AGENTS.md`, manifests: stack and the build/lint/format/type-check/test commands.
 - Architecture decision records the Proposal references (checked to be still in force).
@@ -42,13 +42,13 @@ The feature name is part of the file name. The skill never overwrites a `Review_
 
 Phase 0 prepares (argument, Proposal, earlier reviews, project, diff, files, date). Then the document sections:
 
-1. **Spec compliance**: plan compliance per layer (deviations classed MISSING = CRITICAL, DIVERGENT = MAJOR, EXTRA = MINOR) and alignment with decisions and principles. Open questions silently resolved by the code are reported.
+1. **Spec compliance**: 1.1 AI-SPEC compliance: Scope (everything In scope exists; nothing Out of scope was built) and each Solution item (files, data model, contracts, logic, state machine, error handling) checked at its stated path, plus the AI-SPEC's Traceability table (every row's file and test exist). Deviations are classed MISSING = CRITICAL, DIVERGENT = MAJOR, EXTRA = MINOR. 1.2 Proposal alignment: no rule weakened or dropped between Proposal and AI-SPEC; decisions and principles followed. Open questions silently resolved by the code are reported.
 2. **Business-rule traceability**: a row per `RN-NN` with implemented?, `File:line`, tested?, test. Verdicts COVERED, UNTESTED (MAJOR), PARTIAL, MISSING (CRITICAL). A rule implemented in several layers needs evidence in each layer.
 3. **Acceptance criteria**: PASS / FAIL / NOT VERIFIABLE per `CA-F<N>-NN` with evidence. A phase review **never emits PASS or FAIL on a `CA-FINAL-*`**: they are `NOT VERIFIABLE` there; only the final review judges them.
 4. **Code review**: architecture and patterns, data isolation (if multi-tenant or per-owner data), security, quality, error handling.
 5. **Cross-layer consistency**: ALIGNED or DRIFT for data-model vs. contract fields, validation vs. rules, routes vs. API contract, response types vs. client models, client paths vs. server routes, i18n keys vs. locale files.
 6. **Migrations and seeds** (if the project has them).
-7. **Testing validation**: run the suites (never trust the implementation report), completeness table, planned test ids exist (`grep -rn '<ID>'`; a phantom test is traceability fiction), **invariant guards - mutation sampling (mandatory)**, duplicated catalogs, test doubles for third-party dependencies.
+7. **Testing validation**: run the suites (never trust the implementation report), completeness table, every `T-F<N>-NN` of the AI-SPEC's Tests section exists in the code and covers its mapped RN/CA (`grep -rn '<ID>'`; a phantom test is traceability fiction), **invariant guards - mutation sampling (mandatory)**, duplicated catalogs, test doubles for third-party dependencies.
 8. **Static analysis and build**: lint, type check, format *check*, schema validation, build; a check that did not run is `NOT RUN` with the reason, never counted as PASS.
 9. **Documentation and best practices**.
 10. **Findings register and verdict**: findings `F-NN`, statistics, positive highlights, what to do with findings, **Deferred items**.
@@ -83,6 +83,8 @@ The verdict must be coherent with the register.
 ## Common mistakes
 
 - Judging `CA-FINAL-*` criteria in a phase review.
+- Reviewing against the Proposal only: the AI-SPEC's Scope, Solution, Tests and Traceability table are what the phase was built from.
+- Letting a rule weakened between Proposal and AI-SPEC go unreported.
 - Crediting "the suite passes" as proof that a guard is observed.
 - Citing a test id without grepping that it exists.
 - Quoting the implementer's claims instead of running the commands.
@@ -103,6 +105,7 @@ Excerpt of `docs/features/Notification_Retry/Review_Phase_1_Notification_Retry.m
 
 **Date**: 2026-11-06
 **Proposal reviewed**: docs/features/Notification_Retry/Proposal_Notification_Retry.md
+**AI-SPEC reviewed**: docs/features/Notification_Retry/AI-SPEC_Notification_Retry_Phase_1.md
 **Phase / scope**: phase 1
 **Verdict**: CHANGES REQUIRED
 
