@@ -1,12 +1,12 @@
 ---
 name: review
-description: Review an implemented phase (or the whole feature) against its Proposal - business rules, acceptance criteria, code quality, tests, static analysis and build - and write Review_Phase_<N>_<Feature>.md or Review_Final_<Feature>.md with evidence-backed findings and a verdict. Use when the user asks to review a phase or a feature implementation.
+description: Review an implemented phase (or the whole feature) against its AI-SPEC and Proposal - spec compliance, business rules, acceptance criteria, code quality, tests, static analysis and build - and write Review_Phase_<N>_<Feature>.md or Review_Final_<Feature>.md with evidence-backed findings and a verdict. Use when the user asks to review a phase or a feature implementation.
 argument-hint: <Feature> [phase N | final]
 ---
 
 # Implementation Review (Spectionflow)
 
-Review the implementation of **$ARGUMENTS** against its Proposal. The Proposal is the single source of truth: there is no separate spec. You verify business rules (`RN-NN`), acceptance criteria (`CA-F<phase>-NN`, `CA-FINAL-NN`) and the phase's Implementation Plan.
+Review the implementation of **$ARGUMENTS** against its AI-SPEC (the executable spec of the phase) and its Proposal (the what/why). You verify compliance with the AI-SPEC's Scope, Solution, Tests and Traceability, the business rules (`RN-NN`) and the acceptance criteria (`CA-F<phase>-NN`, `CA-FINAL-NN`). A `final` review checks the whole feature against the Proposal and every phase's AI-SPEC.
 
 Write the review document in the language the project docs use. Section headings stay in English.
 
@@ -22,7 +22,7 @@ Write the review document in the language the project docs use. Section headings
 ## Phase 0 - Preparation (mandatory)
 
 1. **Parse the argument.** `<Feature>` is PascalCase_With_Underscores; `phase N` reviews that phase; `final` reviews the whole feature (cross-phase). No phase given: infer the latest implemented phase from the diff and Proposal, and state your inference.
-2. **Read the Proposal** `docs/features/<Feature>/Proposal_<Feature>.md` completely: business rules, acceptance criteria, decisions (`D-NN`), principles, open questions, and the Implementation Plan for the phase (goal, deliverables, files/areas, tests to write, criteria covered, validation commands). If the Proposal is missing, stop and tell the user.
+2. **Read the specs.** Read the Proposal `docs/features/<Feature>/Proposal_<Feature>.md` completely (business rules, acceptance criteria, decisions `D-NN`, principles, open questions, the phase roadmap), then the AI-SPEC `docs/features/<Feature>/AI-SPEC_<Feature>_Phase_<N>.md` completely (Scope, Solution, Tests, Acceptance Criteria, Traceability, validation commands). For `final`, read every phase's AI-SPEC. If the Proposal is missing, stop and tell the user. If the AI-SPEC of a reviewed phase is missing, stop and tell the user to run `/ai-spec <Feature> phase N`.
 3. **Read earlier reviews** of the same feature (`Review_Phase_*_<Feature>.md`) so you do not contradict or re-report settled points.
 4. **Learn the project.** Read README, CLAUDE.md / AGENTS.md (if any), build manifests. Derive stack, code layout, and the build/lint/format/type-check/test commands. If a command is unclear, ask the user. Every stack-specific check below applies only if the project actually uses that technology.
 5. **Read any architecture decision records** the Proposal references (if the project keeps them), and check each is still in force before using it as a premise.
@@ -48,17 +48,19 @@ Start the document exactly with:
 
 **Date**: YYYY-MM-DD
 **Proposal reviewed**: <path>
+**AI-SPEC reviewed**: <path(s)>
 **Phase / scope**: <phase N | final>
 **Verdict**: <filled at the end, identical to section 10>
 ```
 
 ## 1. Spec compliance
 
-Compare what was implemented against what the Proposal specifies for this phase.
+Compare what was implemented against what the AI-SPEC specifies for this phase, then against the Proposal.
 
-### 1.1 Plan compliance
+### 1.1 AI-SPEC compliance
 
-For each deliverable of the phase's Implementation Plan, check it exists and matches. Adapt to the stack; typical layers:
+- **Scope**: everything In scope exists; nothing from Out of scope was built (that is EXTRA).
+- **Solution**: for each item of the AI-SPEC's Solution (files created/modified, data model, contracts, logic, state machine, error handling), check it exists at the stated path and matches. Adapt to the stack; typical layers:
 
 - **Data layer**: models/entities, fields, types, defaults, relations, indexes, enums/value sets, migrations consistent with the schema, seed data idempotent.
 - **Service/API layer**: every specified endpoint/command (method, path, auth, request/response), input validation, pagination on list operations.
@@ -74,8 +76,11 @@ Classify each deviation:
 | **DIVERGENT** | Implemented differently from the spec (explain how) | MAJOR |
 | **EXTRA** | Implemented, not in the spec | MINOR (acceptable if justified) |
 
+Also check the AI-SPEC's **Traceability** table: every row's file/area and test exist, and nothing the table promises is missing.
+
 ### 1.2 Proposal alignment
 
+- The business rules and criteria the AI-SPEC claims to cover match the Proposal's (no rule weakened or dropped between Proposal and AI-SPEC).
 - The implementation follows the Proposal's decisions (`D-NN`) and principles; the chosen option is the approved one.
 - Integration points match what was proposed.
 - No contradiction with referenced decision records.
@@ -182,7 +187,7 @@ Run the project's own test commands. Do not trust claims from the implementation
 - Areas with no test infrastructure: note the gap, do not invent coverage.
 
 ### 7.2 End-to-end tests
-Run them where the project has them. Cross-module or multi-step flows specified in the Proposal need an E2E or integration test.
+Run them where the project has them. Cross-module or multi-step flows specified in the AI-SPEC or Proposal need an E2E or integration test.
 
 ### 7.3 Completeness assessment
 
@@ -196,7 +201,7 @@ Flag untested critical paths (complex rules, error handling on external calls, s
 
 ### 7.4 Planned test scenarios exist
 
-Every test id or scenario the Proposal's plan names must exist in the code. Run `grep -rn '<ID>' <test dirs>`. An id that does not exist is `NO`, never `YES` because "other tests probably cover it". A phantom test cited as evidence is traceability fiction. Also report **orphans**: tests that exist and are cited nowhere (not a defect; they signal behavior beyond the contract).
+Every test scenario the AI-SPEC's Tests section lists (`T-F<N>-NN`) must exist in the code, and cover the `RN`/`CA` it is mapped to. Report spec scenarios with no test as findings. Run `grep -rn '<ID>' <test dirs>`. An id that does not exist is `NO`, never `YES` because "other tests probably cover it". A phantom test cited as evidence is traceability fiction. Also report **orphans**: tests that exist and are cited nowhere (not a defect; they signal behavior beyond the contract).
 
 ### 7.5 Invariant guards - mutation sampling (mandatory)
 
@@ -275,7 +280,7 @@ Consolidate every finding from sections 1-9 into one prioritized register. Give 
 
 - **APPROVED**: zero CRITICAL, zero MAJOR; all tests pass; all in-scope acceptance criteria PASS.
 - **APPROVED WITH OBSERVATIONS**: zero CRITICAL, zero MAJOR; MINOR findings or observations exist but do not block.
-- **CHANGES REQUIRED**: any CRITICAL or MAJOR finding, or any acceptance criterion FAIL, or any failing test. The phase goes back to `/implement`.
+- **CHANGES REQUIRED**: any CRITICAL or MAJOR finding (including a MISSING AI-SPEC item), or any acceptance criterion FAIL, or any failing test. The phase goes back to `/implement`.
 
 The verdict must be coherent with the register: a document with a MAJOR in its own table cannot say APPROVED.
 
@@ -283,7 +288,7 @@ The verdict must be coherent with the register: a document with a MAJOR in its o
 
 | Category | Pass | Fail | N/A |
 |---|---|---|---|
-| Spec compliance | | | |
+| Spec compliance (AI-SPEC and Proposal) | | | |
 | Rule traceability | | | |
 | Acceptance criteria | | | |
 | Code review | | | |
@@ -320,7 +325,7 @@ Anything **not** fixed in this pass must not die in the review file. Add a "Defe
 ## Quality checklist (self-check before finishing)
 
 - Every verdict has evidence you actually produced (command run, file read), with real paths.
-- The traceability matrix lists every in-scope `RN-NN`; every in-scope `CA-*` has a verdict.
+- The traceability matrix lists every in-scope `RN-NN`; every in-scope `CA-*` has a verdict; every AI-SPEC Solution item and `T-F<N>-NN` scenario was checked.
 - Phase review: no PASS/FAIL on any `CA-FINAL-*`.
 - Mutation table present, with the sampling fraction declared, and every temporary edit restored with matching checksums.
 - You edited no reviewed code and dispatched no sub-agents.

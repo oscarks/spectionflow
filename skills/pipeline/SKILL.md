@@ -1,12 +1,12 @@
 ---
 name: pipeline
-description: Orchestrate a whole feature in the current session - optional analysis, proposal, then per phase implement and review (with a bounded fix loop), acceptance-criteria verification, final review, fix and summary. Use when the user wants to run or resume the full development flow for a feature.
+description: Orchestrate a whole feature in the current session - optional analysis, proposal, then per phase ai-spec, implement and review (with a bounded fix loop), acceptance-criteria verification, final review, fix and summary. Use when the user wants to run or resume the full development flow for a feature.
 argument-hint: "<Feature> [all | phase N | resume]"
 ---
 
 # Feature Pipeline (Spectionflow)
 
-Run the full development flow for **$ARGUMENTS** by chaining the sibling skills. The pipeline only **orchestrates**: `/analysis`, `/proposal`, `/implement` and `/review` do the work and write their own artifacts. Invoke each by name, read what it produced, decide the next step. Never copy or reimplement their content here.
+Run the full development flow for **$ARGUMENTS** by chaining the sibling skills. The pipeline only **orchestrates**: `/analysis`, `/proposal`, `/ai-spec`, `/implement` and `/review` do the work and write their own artifacts. Invoke each by name, read what it produced, decide the next step. Never copy or reimplement their content here.
 
 All steps run in the current session. Documents are written in the language the user and project docs use; headings stay in English.
 
@@ -14,7 +14,7 @@ All steps run in the current session. Documents are written in the language the 
 
 ```
 [/analysis (optional advisory)] -> /proposal -> HUMAN APPROVAL
-  -> per phase: /implement -> /review -> (fix loop) until APPROVED
+  -> per phase: /ai-spec -> /implement -> /review -> (fix loop) until APPROVED
   -> acceptance-criteria verification (all phases)
   -> final /review -> fix -> completion summary
 ```
@@ -41,7 +41,8 @@ There is no state file. Read the artifacts in `docs/features/<Feature>/`:
 |---|---|
 | `Analysis_<Feature>.md` | An analysis exists (advisory only). |
 | `Proposal_<Feature>.md` | Proposal exists; its `Status` line: Draft / Approved / In Progress / Implemented / Superseded. |
-| Proposal "Implementation Plan" | The list of phases (number, goal, deliverables, acceptance criteria). |
+| Proposal "Implementation Plan" | The phase roadmap (number, name, goal, scope summary, acceptance criteria). |
+| `AI-SPEC_<Feature>_Phase_<N>.md` | The phase spec exists; its `Status`: Draft / Approved / Implemented / Superseded. |
 | `Review_Phase_<N>_<Feature>.md` | Latest verdict of phase N: APPROVED, APPROVED WITH OBSERVATIONS or CHANGES REQUIRED. |
 | `Review_Final_<Feature>.md` | Final review done; its verdict and findings. |
 | `Progress_<Feature>.md` | Optional checklist this skill writes (see 0.4). |
@@ -50,8 +51,9 @@ Phase status, derived in this order (artifacts first, checklist second; if they 
 
 - Phase **done**: its review file exists, is non-empty, and the verdict is APPROVED or APPROVED WITH OBSERVATIONS.
 - Phase **needs fixes**: review verdict is CHANGES REQUIRED.
-- Phase **implemented, unreviewed**: the checklist says implement is done (or the phase's deliverable files exist) but there is no review file. Treat it as needing `/review`.
-- Phase **pending**: anything else.
+- Phase **implemented, unreviewed**: the AI-SPEC Status is Implemented (or the checklist says implement is done, or the AI-SPEC's files exist) but there is no review file. Treat it as needing `/review`.
+- Phase **specified**: an AI-SPEC exists (Draft or Approved) but is not Implemented. Treat it as needing `/implement`.
+- Phase **pending**: no AI-SPEC yet. Treat it as needing `/ai-spec`.
 
 Print a status table (step, status, scope) before acting, marking phases outside the requested scope as skipped.
 
@@ -73,7 +75,7 @@ Maintain `docs/features/<Feature>/Progress_<Feature>.md`, written **only by this
 - [x] Analysis (optional) - Analysis_<Feature>.md
 - [x] Proposal - Proposal_<Feature>.md (Status: Approved)
 - [x] Human approval of the proposal
-- [ ] Phase 1 - implement | review (verdict: -) | fix rounds: 0/3
+- [ ] Phase 1 - ai-spec (AI-SPEC_<Feature>_Phase_1.md) | implement | review (verdict: -) | fix rounds: 0/3
 - [ ] Phase 2 - ...
 - [ ] Acceptance-criteria verification (X/Y passed)
 - [ ] Final review (verdict: -)
@@ -83,7 +85,7 @@ Maintain `docs/features/<Feature>/Progress_<Feature>.md`, written **only by this
 
 ### 0.5 Phase-count sanity warning
 
-If the scope is `all` and the plan has more than 5 phases, warn before starting:
+If the scope is `all` and the roadmap has more than 5 phases, warn before starting:
 
 > N phases detected. Quality drops on long runs; consider batches of 3-4 phases (e.g. `/pipeline <Feature> phase 1`, then the next). Continue with all N, or pick a range?
 
@@ -99,7 +101,7 @@ Otherwise:
    - Found: note it; `/proposal` will consume it.
    - Not found: mention once that if the feature carries real technical or decision uncertainty, `/analysis` before `/proposal` can reduce risk (a short timeboxed spike). It is only a reminder; continue.
 2. Invoke `/proposal` for the feature. Do not write the proposal yourself.
-3. Verify the file exists and is non-empty, and that it has an Implementation Plan with phases and acceptance criteria. If either is missing, say so and stop for the user.
+3. Verify the file exists and is non-empty, and that it has a phase roadmap (Implementation Plan) and acceptance criteria. If either is missing, say so and stop for the user.
 
 ### Human checkpoint: approve the proposal
 
@@ -107,17 +109,21 @@ Never implement on an unapproved proposal. Present the proposal path, a 5-line s
 
 ## Step 2 - Identify phases
 
-Read the Proposal's "Implementation Plan" and list its phases (number, name, goal). If the section has no phases, ask the user to define them (or send the proposal back to `/proposal`) before continuing. Phase numbers are identities: never renumber. Apply the scope from 0.1 and run the sanity warning from 0.5. Set the Proposal Status to In Progress when the first phase starts.
+Read the Proposal's "Implementation Plan" (the phase roadmap) and list its phases (number, name, goal). If the section has no phases, ask the user to define them (or send the proposal back to `/proposal`) before continuing. Phase numbers are identities: never renumber. Apply the scope from 0.1 and run the sanity warning from 0.5. Set the Proposal Status to In Progress when the first phase starts.
 
 ## Step 3 - Phase loop
 
-For each in-scope phase, in plan order, run 3a then 3b and handle the fix loop before moving to the next phase. Skip any step already satisfied by the derived state.
+For each in-scope phase, in plan order, run 3-spec, 3a and 3b and handle the fix loop before moving to the next phase. Skip any step already satisfied by the derived state.
+
+### 3-spec. AI-SPEC
+
+If `AI-SPEC_<Feature>_Phase_<N>.md` does not exist, invoke `/ai-spec <Feature> phase N`; do not write it yourself. Verify the file exists and is non-empty. Show the user a short summary (scope, main files, tests, criteria covered). In `all` mode, proceed automatically unless the user asked to review specs; in a `phase N` run, stop for the user's OK before implementing, since the AI-SPEC is the contract `/implement` will follow. If the user asks for changes, re-run `/ai-spec` with their feedback. A Draft AI-SPEC accepted this way counts as approved.
 
 ### 3a. Implement
 
-Invoke `/implement` for the Proposal's phase N. After it returns:
+Invoke `/implement` for the feature's phase N (it follows the AI-SPEC and sets its Status to Implemented). After it returns:
 
-1. Check completeness: every deliverable file the phase plan lists exists.
+1. Check completeness: every file the AI-SPEC's Solution lists exists.
 2. Run the project's build/type-check and test commands (discovered from README, manifests or CLAUDE.md/AGENTS.md; ask if unclear). New build errors or test failures that were not present before the phase mean the implementation failed: report them, fix them (re-invoke `/implement` for the failures) before reviewing.
 3. Update the checklist.
 
@@ -190,10 +196,10 @@ State plainly that "not verified" criteria are not "almost passed": the feature 
 
 ## Execution rules
 
-1. **Orchestrate, don't duplicate.** Invoke the sibling skills by name and read their artifacts; do not write proposals, code or reviews in their place, and do not paste their content into this skill's output beyond summaries.
-2. **Artifacts are the source of truth.** Derive progress from the Proposal Status and review verdicts; the checklist is a convenience and never overrides them. Never mark a step done without its artifact existing and being non-empty.
+1. **Orchestrate, don't duplicate.** Invoke the sibling skills by name and read their artifacts; do not write proposals, AI-SPECs, code or reviews in their place, and do not paste their content into this skill's output beyond summaries.
+2. **Artifacts are the source of truth.** Derive progress from the Proposal and AI-SPEC Status lines and review verdicts; the checklist is a convenience and never overrides them. Never mark a step done without its artifact existing and being non-empty.
 3. **Skip what is already done**, unless the user asked for a restart. Never regress a finished phase on your own.
-4. **Gates.** No implementation without an approved proposal. No phase counts as complete without a review file whose verdict is APPROVED or APPROVED WITH OBSERVATIONS.
+4. **Gates.** No implementation without an approved proposal and an AI-SPEC for the phase. No phase counts as complete without a review file whose verdict is APPROVED or APPROVED WITH OBSERVATIONS.
 5. **Bounded fix loops.** Maximum 3 fix rounds per phase and for the final review; then stop and ask the human. Stop immediately for the human on a CRITICAL that survives round 3.
 6. **Reviewers do not fix; fixers do not approve.** The fix goes through `/implement`; the verdict always comes from a fresh `/review`.
 7. **Scope control.** Fix only what the findings list. Do not fold unrelated improvements into a fix round.

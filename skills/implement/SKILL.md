@@ -1,12 +1,12 @@
 ---
 name: implement
-description: Implement one phase of the Proposal's Implementation Plan. Use when the user asks to implement, build or code a feature that already has an approved Proposal in docs/features/<Feature>/.
+description: Implement one phase of a feature from its AI-SPEC. Use when the user asks to implement, build or code a feature phase that already has an AI-SPEC in docs/features/<Feature>/.
 argument-hint: <Feature> [phase N]
 ---
 
 # Implement
 
-Implement one phase of the "Implementation Plan" in `docs/features/<Feature>/Proposal_<Feature>.md`. Argument: `$ARGUMENTS` = `<Feature> [phase N]`. If no phase is given, implement the first phase not yet implemented (ask if unclear). The Proposal is the only spec; there is no separate technical spec.
+Implement one phase from `docs/features/<Feature>/AI-SPEC_<Feature>_Phase_<N>.md`. Argument: `$ARGUMENTS` = `<Feature> [phase N]`. If no phase is given, implement the first phase whose AI-SPEC is not yet `Implemented` (ask if unclear). The AI-SPEC is the executable spec; the Proposal (`Proposal_<Feature>.md`) is the what/why behind it. If the AI-SPEC for the phase does not exist, STOP and tell the user to run `/ai-spec <Feature> phase N` first.
 
 Write code comments, test names and any user-facing text in the language the project already uses.
 
@@ -14,18 +14,18 @@ Write code comments, test names and any user-facing text in the language the pro
 
 ## Step 0 — Preparation (mandatory before any code)
 
-1. **Read the Proposal in full.** Locate the Implementation Plan and the exact phase. Note its goal, deliverables, files/areas to touch, tests to write, acceptance criteria (`CA-F<N>-NN`), business rules (`RN-NN`), validation commands, and the decisions (`D-NN`) that constrain it.
+1. **Read the AI-SPEC of phase N in full, then the Proposal.** From the AI-SPEC note the Scope (in/out), the Solution (files, contracts, rules, execution order), Tests (`T-F<N>-NN`), Acceptance Criteria (`CA-F<N>-NN`), Traceability and validation commands. From the Proposal note the business rules (`RN-NN`) and decisions (`D-NN`) that constrain the phase.
 2. **Check prerequisites.** If the phase depends on an earlier phase or an open question (`AQ-NN`) that is unresolved, STOP and tell the user. Do not guess.
 3. **Learn the project.** Read README, CLAUDE.md / AGENTS.md (if present), package/build manifests and the directory layout. Discover the stack, the build / lint / format / test commands, naming and layering conventions, and the test style. If a command cannot be found, ask the user.
 4. **Study existing code.** Before touching an area, read at least one similar existing module and copy its real patterns (structure, naming, error handling, test style). Use what the repo does, not generic templates. If the project has a design-system or style guide document, read it before writing interface code.
-5. **Update the Status line** of the Proposal to `In Progress` when starting phase 1. This is the only edit you may make to the Proposal; never change its content, plan or criteria. If the plan is wrong or incomplete, tell the user and let them fix the Proposal.
-6. **Plan the work.** Break the phase into small tasks in the execution order below and track them with the task tool if available.
+5. **Update the Status line** of the Proposal to `In Progress` when starting phase 1. This is the only edit you may make to the Proposal; never change its content, plan or criteria. If the Proposal or the AI-SPEC is wrong or incomplete, tell the user and let them fix it; do not edit the AI-SPEC (except its Status line at completion, see below).
+6. **Plan the work.** Break the phase into small tasks following the AI-SPEC's Solution order (the generic order below fills in anything the AI-SPEC leaves implicit) and track them with the task tool if available.
 
 ---
 
 ## Step 1 — Execution order (follow strictly)
 
-Implement in this order. Each step must build and pass its checks before the next one starts. Skip layers the project or the phase does not have.
+Follow the AI-SPEC's Solution order. Where it is silent, implement in this order. Each step must build and pass its checks before the next one starts. Skip layers the project or the phase does not have.
 
 1. **Data** — schema, models, migrations, seeds. Follow the Proposal's fields, types, defaults, relations and indexes exactly. Migrations: never drop data or columns without explicit user confirmation; renames are add → migrate → drop. Seeds must be idempotent. Regenerate any generated client. Run the schema validation command if one exists.
 2. **Contracts** — request/response types, validation schemas, shared interfaces. Match the Proposal exactly; never expose secrets, hashes or internal identifiers that should stay opaque. Keep names aligned with the data model (or document the mapping).
@@ -45,7 +45,7 @@ When code depends on a third-party library whose exact version matters, check th
 
 ## Scope control
 
-- Implement only what the Proposal's plan describes for this phase. No future-phase work, no extra features, no refactoring of surrounding code.
+- Implement only what the AI-SPEC's Scope (In scope) describes for this phase. No future-phase work, no extra features, no refactoring of surrounding code.
 - If something is ambiguous or undefined, ask the user before assuming.
 - Before creating any file or module, check whether it exists; if it does, modify only what is necessary.
 - Do not touch files the project asks agents to ignore.
@@ -58,7 +58,7 @@ When code depends on a third-party library whose exact version matters, check th
 Skip rows for layers the project does not have.
 
 - [ ] Data-model field names match contract field names (or the mapping is documented)
-- [ ] Validation rules match the business rules in the Proposal
+- [ ] Validation rules match the business rules in the AI-SPEC and the Proposal
 - [ ] Route paths in handlers match the API contract document and the client layer, exactly
 - [ ] Response shapes match the client-side models (names and types)
 - [ ] State actions call the right client methods
@@ -102,7 +102,8 @@ Verify all of these before declaring the phase done; skip rows that do not apply
 - [ ] Every data model, endpoint/command and screen listed in the phase exists
 - [ ] Every business rule (`RN-NN`) in this phase is enforced in code
 - [ ] Every acceptance criterion (`CA-F<N>-NN`) of this phase is met and has a test or a stated verification
-- [ ] Every test listed in the phase is written
+- [ ] Every test listed in the AI-SPEC (`T-F<N>-NN`) is written
+- [ ] AI-SPEC `Status` line set to `Implemented` (the only edit allowed to it)
 - [ ] API contract document updated (if the project keeps one)
 - [ ] Translation keys in all locales (if the project is multilingual)
 
@@ -118,7 +119,7 @@ Verify all of these before declaring the phase done; skip rows that do not apply
 
 Report concisely:
 
-- what was implemented, mapped to the phase's deliverables and acceptance criteria;
+- what was implemented, mapped to the AI-SPEC's Solution items and acceptance criteria;
 - the commands run and their results (build, lint, tests), plus any test or check that could not be run and why;
 - any guard left unproven, and any gap you could not close;
 - **deferred / out-of-scope items**: everything you noticed but deliberately did not do (future-phase work, refactors, ambiguities, environment limitations). List them so the reviewer and the user can decide; do not create a separate tracking file.

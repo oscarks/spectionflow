@@ -1,6 +1,6 @@
 ---
 name: proposal
-description: Write a solution Proposal for a feature - the single, self-sufficient spec (problem, solution, business rules, acceptance criteria, risks, decisions and a phased Implementation Plan) that /implement and /review work from. Use before implementing a feature.
+description: Write a solution Proposal for a feature - the what and why (problem, solution, business rules, acceptance criteria, risks, decisions and a phase roadmap) from which /ai-spec derives one detailed spec per phase. Use before specifying or implementing a feature.
 argument-hint: <Feature Name>
 ---
 
@@ -8,7 +8,7 @@ argument-hint: <Feature Name>
 
 Write the solution Proposal for **$ARGUMENTS** (Spectionflow).
 
-The Proposal is the **only spec** of the feature. There is no separate technical spec: a developer (or an AI agent) must be able to implement each phase from this document alone, without asking questions. `/implement` reads its Implementation Plan; `/review` checks the code against its business rules, acceptance criteria and phase plan.
+The Proposal is the **what and why** of the feature: the problem, the solution vision, the business rules, the acceptance criteria and a phase roadmap. It is not an implementation spec. After approval, `/ai-spec <Feature> phase N` derives the executable spec of each phase (files, contracts, tests), `/implement` builds from that AI-SPEC, and `/review` checks the code against the AI-SPEC and this Proposal. Be precise about behavior and rules; leave file-level detail to the AI-SPEC.
 
 Write the document in the language the user and the project docs use. Section headings stay in English.
 
@@ -73,7 +73,7 @@ Say what is stub vs. fully implemented, what is missing, and what must be **modi
 - **Data model**: full definitions in the project's actual schema syntax (not pseudo-code): fields, types, defaults, relations, indexes, constraints. For existing models show only the diff. Entity-relationship sketch.
 - **Data flow**: diagram of how data moves across layers (user action -> interface -> API -> service -> store and back); lifecycle states for entities that have one; a sequence diagram for the main happy path and the most important error path.
 - **Integrations**: how this connects to existing modules and external systems (direction, mechanism, payloads). Event handlers must be idempotent. Justify direct cross-module calls over events.
-- **Components**: file/directory tree following the project's real layout and naming; endpoints/operations table (method, path, purpose, auth, success and error responses, pagination); UI views/routes, component hierarchy and state handling where there is a UI. Be exact: paths, names, signatures.
+- **Components**: the modules/areas involved, following the project's real layout and naming; the operations/endpoints at contract level (purpose, auth, success and error behavior); UI views and state handling where there is a UI. Exact file lists, signatures and code structure are left to the AI-SPEC.
 - **Alternatives**: for non-obvious choices, compare Options A/B/C in a table (simplicity, performance, extensibility, impact on existing code) and give a clear recommendation with the trade-offs accepted.
 
 ### 5. Business Rules
@@ -114,23 +114,14 @@ Numbered `B-01`... Each benefit resolves one or more `SC-NN` and states how succ
 - Every business rule `RN-NN` is covered by at least one criterion; every criterion traces to at least one scenario `SC-NN`.
 - A criterion about a test suite must name its **baseline**: "no new failure relative to the baseline recorded at the start of the feature", never "the suite is green". The absolute form cannot be verified by whoever must satisfy it, because unrelated work can turn the suite red. Record the baseline numbers in the Proposal.
 
-### 14. Implementation Plan (mandatory)
-The heart of the document. Break the work into **phases sized to be implemented and reviewed one at a time**: each phase is independently deployable (no half-implemented feature in production), touches a bounded set of files, and can be verified on its own. Overview table first:
+### 14. Implementation Plan (mandatory) - phase roadmap only
+Break the work into **phases sized to be specified, implemented and reviewed one at a time**: each phase is independently deployable (no half-implemented feature in production) and can be verified on its own. This section is a roadmap; **no file-level detail** (paths to create, signatures, test files) goes here - that is the job of the per-phase AI-SPEC. One table:
 
-| Phase | Scope | Depends on | Deliverable |
-| --- | --- | --- | --- |
-| 1 | | None | |
+| Phase | Name | Goal | Scope summary | Acceptance criteria covered | Depends on | Size |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | | one sentence | 1-3 lines of what is in | `CA-F1-01`.. | None | S / M / L |
 
-Then, for **each phase**, a subsection `#### Phase N - {name}` with:
-
-- **Goal**: one or two sentences.
-- **Deliverables**: concrete artifacts (migrations, endpoints, components, config) - spelled out, no "etc.".
-- **Files / areas**: real paths to create and to modify, one line each with the change.
-- **Tests to write**: test files, what each covers, mapped to `RN-NN`.
-- **Acceptance criteria covered**: the `CA-F<N>-NN` ids (and any `CA-FINAL-NN` that closes here).
-- **Validation commands**: the exact build / test / lint / run commands discovered in Phase 0, with the expected result (and the baseline, if "no new failures").
-
-A small feature may have a single phase. Phases must be ordered so each leaves the system working.
+Every `CA-F<N>-NN` belongs to exactly one phase; `CA-FINAL-NN` closes in the last phase. A small feature may have a single phase. Order phases so each leaves the system working. Validation commands (build / test / lint, with the baseline) are discovered in Phase 0 and recorded in the AI-SPEC of each phase.
 
 ### 15. Open Questions
 `AQ-NN` with **question**, **owner** and **status**. Owner is one of: `operator` (must answer before approval), `proposal` (answer it here before finalizing), `spike` (needs a timeboxed experiment first), `deferred` (consciously postponed, with the reason and trigger). Questions that block a phase must be answered before that phase is implemented. Never rename or reuse an `AQ-NN`.
@@ -145,7 +136,7 @@ Only domain-specific or ambiguous terms.
 3. No placeholder text: never "TBD", "similar to X", "etc.", "as needed". Spell it out, or mark it OUT OF SCOPE with a justification, or raise it as an `AQ-NN`.
 4. Present alternatives with a clear recommendation where the choice is non-obvious.
 5. Keep IDs stable: once published, `SC`, `P`, `RN`, `CA`, `AQ`, `D`, `R`, `B` ids are never renamed or reused. New items take the next number.
-6. Keep it actionable: someone implementing a phase from this document must not need to ask anything.
+6. Keep it actionable: someone writing the AI-SPEC of a phase from this document must not need to ask about behavior, rules or scope.
 7. Check the proposal does not contradict existing decision records or approved proposals.
 8. Status changes (Draft -> Approved -> In Progress -> Implemented) are made by editing the `Status` line; set `Approved` only when the operator approves in the conversation. Never write the proposal as already approved.
 
@@ -158,8 +149,8 @@ Only domain-specific or ambiguous terms.
 - Every `RN-NN` is testable; every `RN-NN` is covered by a `CA`; every `CA` traces to an `SC`.
 - Security and performance sections address the project's real access model and bottlenecks.
 - Risks have concrete mitigations; benefits are measured honestly.
-- The Implementation Plan covers every acceptance criterion, each phase is reviewable on its own, and each has validation commands.
+- The Implementation Plan is a roadmap only (no file-level detail), covers every acceptance criterion, and each phase is reviewable on its own.
 - Open questions have owners; blocking ones are flagged.
 - No contradiction with existing decisions; no placeholder text.
 
-When done, report the path of the Proposal, the number of phases, and the open questions the operator must answer. Suggest the next step: review and approve the Proposal, then `/implement` phase 1.
+When done, report the path of the Proposal, the number of phases, and the open questions the operator must answer. Suggest the next step: review and approve the Proposal, then run `/ai-spec <Feature> phase 1` to produce the phase spec, then `/implement` and `/review` for that phase (repeat per phase).
