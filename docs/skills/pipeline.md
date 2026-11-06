@@ -13,11 +13,13 @@ Use it to run or resume the full flow for a feature. Do not use it for a single 
 ## Invocation and arguments
 
 ```
-/pipeline <Feature> [all | phase N | resume]
+/pipeline <Feature> [A | B] [all | phase N | resume]
 ```
 
 | Token | Meaning |
 |---|---|
+| `A` (default) | Mode A: every step runs in the current session |
+| `B` (or `subagent`) | Mode B: every step runs in a fresh sub-agent (see [Execution modes](#execution-modes)) |
 | `all` (or nothing) | every phase in scope |
 | `phase N` (or a bare integer) | only phase N; steps 4 to 6 (cross-phase) are skipped |
 | `resume` | continue from the first incomplete step; never asks to restart |
@@ -26,9 +28,17 @@ Use it to run or resume the full flow for a feature. Do not use it for a single 
 /pipeline Notification_Retry all
 /pipeline Notification_Retry phase 1
 /pipeline Notification_Retry resume
+/pipeline Notification_Retry B all      # each step in a fresh sub-agent
 ```
 
 The feature name is normalized to `PascalCase_With_Underscores` and matched against existing directories under `docs/features/` (case-insensitive) before anything is created.
+
+## Execution modes
+
+- **Mode A (default)**: the pipeline calls each skill in your current session. Simple; the whole history stays in one context, which can run out on long features.
+- **Mode B (sub-agents)**: the pipeline is a thin orchestrator and dispatches every step (`/proposal`, `/ai-spec`, `/implement`, `/review`, each fix round) to a fresh sub-agent. Each step starts with a clean context, and the reviewer never inherits the implementer's reasoning. If your agent has no sub-agent tool, the pipeline says so and continues in Mode A.
+
+Mode B rules: one step at a time, never in parallel; the orchestrator keeps the human checkpoints, the progress file and the conversation with you (sub-agents never ask you anything — they return the question); each sub-agent gets a complete brief (feature, step, artifact paths, project commands, scope) and returns at most 10 lines; the orchestrator verifies the artifact on disk instead of trusting the report; `/review` always runs in a different sub-agent than the `/implement` of the same phase; a failed or empty result is retried once, then the run halts. Fix-round limits and stop conditions are the same as in Mode A.
 
 ## Inputs read
 

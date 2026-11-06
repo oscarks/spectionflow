@@ -67,7 +67,7 @@ Repeat `/ai-spec`, `/implement` and `/review` for each phase, then close with:
 
 The pipeline drives proposal, then ai-spec → implement → review for each phase, loops on fixes (bounded),
 verifies all acceptance criteria and does the final review. It stops at the human checkpoints (the Proposal; and the AI-SPEC in a `phase N` run).
-Resume an interrupted run with `/pipeline Notification_Retry resume`.
+Resume an interrupted run with `/pipeline Notification_Retry resume`. Add `B` (`/pipeline Notification_Retry B all`) to run every step in a fresh sub-agent, which keeps long features from exhausting the context window.
 
 ## 5. Starting from an idea instead of a feature
 

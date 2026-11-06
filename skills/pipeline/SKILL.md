@@ -1,14 +1,14 @@
 ---
 name: pipeline
 description: Orchestrate a whole feature in the current session - optional analysis, proposal, then per phase ai-spec, implement and review (with a bounded fix loop), acceptance-criteria verification, final review, fix and summary. Use when the user wants to run or resume the full development flow for a feature.
-argument-hint: "<Feature> [all | phase N | resume]"
+argument-hint: "<Feature> [A | B] [all | phase N | resume]"
 ---
 
 # Feature Pipeline (Spectionflow)
 
 Run the full development flow for **$ARGUMENTS** by chaining the sibling skills. The pipeline only **orchestrates**: `/analysis`, `/proposal`, `/ai-spec`, `/implement` and `/review` do the work and write their own artifacts. Invoke each by name, read what it produced, decide the next step. Never copy or reimplement their content here.
 
-All steps run in the current session. Documents are written in the language the user and project docs use; headings stay in English.
+Two execution modes (see "Execution mode"): **A** runs every step in the current session (default); **B** dispatches each step to a fresh sub-agent. Documents are written in the language the user and project docs use; headings stay in English.
 
 ## Flow
 
@@ -19,14 +19,35 @@ All steps run in the current session. Documents are written in the language the 
   -> final /review -> fix -> completion summary
 ```
 
+## Execution mode
+
+**Mode A (default).** The pipeline invokes each skill in the current session. Simple, and the full history stays in one context. Long features may exhaust the context window.
+
+**Mode B (sub-agents).** The pipeline stays a thin orchestrator and dispatches each skill step (`/analysis`, `/proposal`, `/ai-spec`, `/implement`, `/review`, each fix round) to a **fresh sub-agent**, using the host's sub-agent tool. Each step starts with a clean context, so a long feature does not degrade, and a reviewer never inherits the implementer's reasoning.
+
+If the host has no sub-agent tool, say so in one line and continue in Mode A.
+
+Rules for Mode B:
+
+1. **One step at a time, in order.** Never run two steps in parallel; each step reads the previous one's artifacts.
+2. **The orchestrator owns state and the user.** Human checkpoints (proposal approval, CRITICAL stop, AI-SPEC approval in `phase N` runs), the progress checklist and the final summary stay in the orchestrator. A sub-agent never talks to the user directly.
+3. **Brief each sub-agent completely**, because it knows nothing else. The prompt must contain: the feature name and the step (`/ai-spec <Feature> phase 2`, ...); the paths of the artifacts to read; the instruction to follow the named skill (invoke it if the host allows, otherwise read its `SKILL.md` and follow it); the project's build/test/lint commands if already known; the scope limits (only this step, only this phase); and the return format below.
+4. **No questions from sub-agents.** If the skill needs a human decision (an ambiguous requirement, an open question owned by the operator), the sub-agent stops, writes nothing it is unsure about, and returns the question. The orchestrator asks the user and re-dispatches with the answer.
+5. **Return format**: at most 10 lines - what was done, artifacts written (paths), verdict or result, blocking questions, deferred items.
+6. **Verify, never trust.** After each sub-agent returns, check the artifact on disk (exists, non-empty, expected status or verdict) before marking the step done. A report that does not match the files is a failed step.
+7. **The reviewer is independent.** Dispatch `/review` to a different sub-agent than the one that ran `/implement` for the same phase. Fix rounds are dispatched as `/implement` runs given the review's findings.
+8. **Same bounds as Mode A**: the fix-round limit and the stop conditions are unchanged. A failed or empty sub-agent result is retried once, then the run halts and reports.
+
 ## Step 0 - Arguments and state
 
 ### 0.1 Parse arguments
 
-`<Feature> [all | phase N | resume]`
+`<Feature> [A | B] [all | phase N | resume]`
 
 | Token | Meaning |
 |---|---|
+| `A` (default) | Mode A: run every step in this session. |
+| `B` (or `subagent`) | Mode B: run each step as a fresh sub-agent (see "Execution mode"). A standalone `A`/`B` is a mode flag, never part of the feature name or a phase. |
 | `all` (or nothing) | every phase in scope |
 | `phase N` (or a bare integer `N`) | only phase N; skip steps 4-6 (cross-phase) |
 | `resume` | continue from the first incomplete step; never ask to restart |
