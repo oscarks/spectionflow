@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Writes the **Proposal**: the single, self-sufficient spec of a feature. A developer or an AI agent must be able to implement each phase from this document alone, without asking questions. `/implement` reads its Implementation Plan; `/review` checks the code against its business rules, acceptance criteria and phase plan.
+Writes the **Proposal**: the **what and why** of a feature: problem, solution vision, business rules, acceptance criteria, risks, decisions and a **phase roadmap**. It is not an implementation spec. After you approve it, `/ai-spec <Feature> phase N` derives the executable spec of each phase (files, contracts, tests), `/implement` builds from that AI-SPEC, and `/review` checks the code against the AI-SPEC and the Proposal. The Proposal must be precise about behavior and rules, so the author of each AI-SPEC never has to ask about them.
 
 ## When to use / not use
 
 Use it before implementing any feature, after the optional inception and analysis.
 
-Do not use it for open-ended exploration (use `/analysis`) or to implement code (use `/implement`). Do not use it to mark itself approved: approval is yours.
+Do not use it for open-ended exploration (use `/analysis`), for file-level design (that is `/ai-spec`) or to implement code (use `/implement`). Do not use it to mark itself approved: approval is yours.
 
 ## Invocation and arguments
 
@@ -44,8 +44,8 @@ If the request scope is vague, the skill asks before writing. If the file alread
 
 1. Phase 0 exploration (above). The findings are summarized in "Current State" to prevent duplicate implementations.
 2. Writes the header, then sections 1 to 15 plus an optional Glossary. Sections: Problem and Motivation, Solution Overview, Current State, Proposed Architecture, Business Rules, Security and Access Model, Performance and Scalability, Impact Analysis, Risks and Mitigations, Observability, Design Decisions, Expected Benefits, Acceptance Criteria, Implementation Plan, Open Questions. A section is omitted only if it genuinely does not apply, and then one line says so.
-3. Breaks the work into **phases** that can be implemented and reviewed one at a time. Each phase is independently deployable, touches a bounded set of files and can be verified on its own. Each phase lists goal, deliverables, files/areas, tests to write, acceptance criteria covered and validation commands.
-4. Runs its self-check, then reports the path, the number of phases and the open questions you must answer, and suggests: review and approve the Proposal, then `/implement` phase 1.
+3. Breaks the work into **phases** that can be specified, implemented and reviewed one at a time. Each phase is independently deployable and can be verified on its own. The Implementation Plan is a **roadmap only**: one table with phase, name, goal, scope summary, acceptance criteria covered, dependencies and size (S / M / L). No paths, signatures or test files appear there; that is the job of the per-phase AI-SPEC.
+4. Runs its self-check, then reports the path, the number of phases and the open questions you must answer, and suggests: review and approve the Proposal, then `/ai-spec <Feature> phase 1` to produce the phase spec, then `/implement` and `/review` for that phase (repeat per phase).
 
 ## Rules and guardrails
 
@@ -64,7 +64,7 @@ If the request scope is vague, the skill asks before writing. If the file alread
 - Clarifying vague scope up front.
 - Answering `operator`-owned open questions before approval.
 - Answering unresolved `proposal`/`spike` questions inherited from an analysis.
-- Approving the Proposal (the gate for `/implement`).
+- Approving the Proposal (the gate for `/ai-spec`, and therefore for `/implement`).
 
 ## Common mistakes
 
@@ -72,7 +72,8 @@ If the request scope is vague, the skill asks before writing. If the file alread
 - Phases that are too large to review, or that leave the system half-working.
 - Business rules that are not testable ("the system should be fast").
 - Acceptance criteria not tied to a phase, or business rules with no covering criterion.
-- Plan sections with no validation commands.
+- File-level detail in the Implementation Plan: it is a roadmap, the detail belongs in the AI-SPEC.
+- A roadmap where an acceptance criterion belongs to no phase, or to two.
 - "The test suite is green" as a criterion instead of "no new failure relative to the baseline".
 - Setting `Status: Approved` without your approval.
 
@@ -111,18 +112,10 @@ RN-02: At most 8 attempts are made per delivery.
 - CA-FINAL-01: no new test failure relative to the baseline (212 passing, 0 failing) recorded at the start.
 
 ## 14. Implementation Plan
-| Phase | Scope | Depends on | Deliverable |
-|---|---|---|---|
-| 1 | Retry scheduling in the jobs worker | None | `attempts` column, retry job |
-| 2 | Backoff and attempt limit | 1 | exponential schedule, cap |
-
-#### Phase 1 - Retry scheduling
-- **Goal**: failed deliveries are re-enqueued.
-- **Deliverables**: migration adding `attempts` and `next_attempt_at`; retry handler.
-- **Files / areas**: `src/delivery/sender.ts` (enqueue on failure); `src/jobs/retry.ts` (new).
-- **Tests to write**: `src/jobs/retry.test.ts` covering RN-01.
-- **Acceptance criteria covered**: CA-F1-01.
-- **Validation commands**: `npm test` (expected: no new failure vs. baseline), `npm run lint`.
+| Phase | Name | Goal | Scope summary | Acceptance criteria covered | Depends on | Size |
+|---|---|---|---|---|---|---|
+| 1 | Retry scheduling | Failed deliveries are re-enqueued | `attempts` tracking and a retry job | CA-F1-01 | None | M |
+| 2 | Backoff and limit | Retries slow down and stop | Exponential schedule, cap of 8 attempts | CA-F1-02, CA-FINAL-01 | 1 | S |
 
 ## 15. Open Questions
 - AQ-01: Should 4xx responses other than 408/429 be retried? Owner: operator. Status: open.
