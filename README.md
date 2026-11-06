@@ -12,7 +12,7 @@ Plain instructions, no runtime, no dependencies.
 | `/review` | Reviews a phase (or the whole feature) against the proposal and writes a verdict |
 | `/pipeline` | Runs proposal → implement → review per phase → final review, with human checkpoints |
 
-See [docs/WORKFLOW.md](docs/WORKFLOW.md) for how they connect.
+Documentation: [docs/README.md](docs/README.md) — start with [getting started](docs/getting-started.md) and the [workflow overview](docs/WORKFLOW.md).
 
 ## Install
 
